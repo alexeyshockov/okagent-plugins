@@ -4,33 +4,33 @@ import subprocess
 
 """ Author: Alexey Shockov <alexey@shockov.com> """
 class ShellCommand:
-    plugin_name = 'shell_command'
+    plugin_name = "shell_command"
 
     def __init__(self, config):
-        self.labels = config.get('labels', {})
+        self.labels = config.get("labels", {})
 
-        self.command = config['command']
+        self.command = config["command"]
 
-        self.column_delimiter = config.get('column_delimiter', "\t")
-        self.value_column = int(config.get('value_column', "0"))
+        self.header = config.get("header", ("value"))
+        self.column_delimiter = config.get("column_delimiter", "\t")
 
     def __call__(self):
-        rows = subprocess.Popen(self.command, stdout=subprocess.PIPE, shell=True).stdout.read().split("\n")
+        rows = map(string.strip, subprocess.Popen(self.command, shell = True, stdout = subprocess.PIPE).stdout.read().split("\n"))
+        rows = filter((lambda row: row <> ''), rows)
 
         results = []
 
         for row in rows:
             cells = map(string.strip, row.split(self.column_delimiter))
 
-            if len(cells) <= self.value_column or cells[self.value_column] == '':
-                continue
+            row = dict(zip(self.header, cells))
 
             labels = copy.copy(self.labels)
-            labels.update(dict((k, str(v)) for (k, v) in enumerate(cells) if k <> self.value_column))
+            labels.update(dict((k, str(v)) for (k, v) in zip(self.header, cells) if k <> "value"))
 
             results.append({
                 'labels': labels,
-                'value': float(cells[self.value_column])
+                'value': float(row["value"])
             })
 
         return results
